@@ -1,8 +1,27 @@
+// Import Firebase SDKs
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// Firebase Configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyA49EhbfTF8vpTlYLeR5tijWUiPqlRRb5Y",
+    authDomain: "aero-equip-map.firebaseapp.com",
+    projectId: "aero-equip-map",
+    storageBucket: "aero-equip-map.firebasestorage.app",
+    messagingSenderId: "123061508316",
+    appId: "1:123061508316:web:636decead73be1986dfc19"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const equipmentCollection = collection(db, "equipment");
+
 // App State
 const state = {
     currentZone: 'cockpit', // 'cockpit' or 'cabin'
     currentLocation: null,
-    equipment: [] // Array of equipment objects
+    equipment: [] // Array of equipment objects synced from Firestore
 };
 
 // Configuration
@@ -39,7 +58,28 @@ const elements = {
 // Initialization
 function init() {
     setupEventListeners();
+    setupFirestoreListener();
     renderLocations();
+}
+
+// Firestore Real-time Listener
+function setupFirestoreListener() {
+    const q = query(equipmentCollection, orderBy("createdAt", "desc"));
+
+    onSnapshot(q, (snapshot) => {
+        state.equipment = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        // Refresh views
+        renderLocations();
+        if (state.currentLocation) {
+            renderEquipmentList();
+        }
+    }, (error) => {
+        console.error("Error getting documents: ", error);
+    });
 }
 
 // Event Listeners
@@ -83,6 +123,9 @@ function setupEventListeners() {
 
 // Render Functions
 function renderLocations() {
+    // Check if elements exist to avoid null errors during hot-reload/DOM changes
+    if (!elements.currentZoneTitle || !elements.locationsContainer) return;
+
     const locations = ZONES[state.currentZone];
     elements.currentZoneTitle.textContent = `${state.currentZone.charAt(0).toUpperCase() + state.currentZone.slice(1)} Locations`;
 
@@ -167,12 +210,18 @@ function closeModal() {
     elements.modal.classList.remove('active');
 }
 
-function handleFormSubmit(e) {
+async function handleFormSubmit(e) {
     e.preventDefault();
 
     const formData = new FormData(elements.form);
+
+    const status = {
+        na: formData.get('status-na') === 'NA',
+        damaged: formData.get('status-damaged') === 'DAMAGED',
+        missing: formData.get('status-missing') === 'MISSING'
+    };
+
     const newEquipment = {
-        id: Date.now(),
         locationId: state.currentLocation,
         description: formData.get('description'),
         partNumber: formData.get('part-number'),
@@ -181,18 +230,26 @@ function handleFormSubmit(e) {
         expireDate: formData.get('exp-date'),
         quantity: formData.get('quantity'),
         notes: formData.get('notes'),
-        status: {
-            na: formData.get('status-na') === 'NA',
-            damaged: formData.get('status-damaged') === 'DAMAGED',
-            missing: formData.get('status-missing') === 'MISSING'
-        }
+        status: status,
+        createdAt: Timestamp.now()
     };
 
-    state.equipment.push(newEquipment);
-    renderEquipmentList();
-    renderLocations(); // To update counts
-    renderLocations(); // To update counts
-    closeModal();
+    try {
+        const btn = elements.form.querySelector('button[type="submit"]');
+        const originalText = btn.textContent;
+        btn.textContent = 'Saving...';
+        btn.disabled = true;
+
+        await addDoc(equipmentCollection, newEquipment);
+
+        btn.textContent = originalText;
+        btn.disabled = false;
+        closeModal();
+    } catch (e) {
+        console.error("Error adding document: ", e);
+        alert("Failed to save equipment. Check console for details.");
+        elements.form.querySelector('button[type="submit"]').disabled = false;
+    }
 }
 
 function exportToCSV() {
@@ -205,8 +262,6 @@ function exportToCSV() {
     const headers = ['Description', 'Quantity', 'Part Number', 'Serial Number', 'Manufacture Date', 'Expire Date', 'Notes'];
 
     const rows = state.equipment.map(item => {
-        // Handle status tags in description or separate? User asked for Description in col 1.
-        // I will append status to description if present to make it useful.
         let desc = item.description;
         if (item.status.na) desc += ' (N/A)';
         if (item.status.damaged) desc += ' (DAMAGED)';

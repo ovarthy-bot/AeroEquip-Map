@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,12 +10,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <div class="app-container">
         <header class="app-header">
             <div class="logo">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M2 12h20M2 12l5-5m-5 5l5 5"/>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12h20M2 12l5-5m-5 5l5 5" />
                 </svg>
                 <h1>AeroEquip Map</h1>
             </div>
@@ -57,7 +60,7 @@
                     <h2 id="selected-location-title">Location Equipment</h2>
                     <button class="btn-primary" id="add-equip-btn">+ Add Equipment</button>
                 </div>
-                
+
                 <div class="equipment-list" id="equipment-list">
                     <!-- Equipment items will be listed here -->
                     <div class="empty-state">
@@ -68,7 +71,7 @@
         </main>
 
         <!-- Add/Edit Modal -->
-        <div class="modal-overlay hidden" id="item-modal">
+        <div class="modal-overlay" id="item-modal">
             <div class="modal">
                 <div class="modal-header">
                     <h2 id="modal-title">Add Equipment</h2>
@@ -78,9 +81,10 @@
                     <form id="equipment-form">
                         <div class="form-group">
                             <label for="description">Description</label>
-                            <input type="text" id="description" name="description" required placeholder="e.g. Life Vest">
+                            <input type="text" id="description" name="description" required
+                                placeholder="e.g. Life Vest">
                         </div>
-                        
+
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="part-number">Part Number</label>
@@ -141,4 +145,5 @@
     </div>
     <script src="app.js"></script>
 </body>
+
 </html>

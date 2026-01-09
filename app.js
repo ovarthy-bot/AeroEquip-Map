@@ -32,7 +32,8 @@ const elements = {
     modal: document.getElementById('item-modal'),
     closeModalBtn: document.getElementById('close-modal'),
     cancelBtn: document.getElementById('cancel-btn'),
-    form: document.getElementById('equipment-form')
+    form: document.getElementById('equipment-form'),
+    exportBtn: document.getElementById('export-btn')
 };
 
 // Initialization
@@ -75,6 +76,9 @@ function setupEventListeners() {
 
     // Form Submission
     elements.form.addEventListener('submit', handleFormSubmit);
+
+    // Export Data
+    elements.exportBtn.addEventListener('click', exportToCSV);
 }
 
 // Render Functions
@@ -187,7 +191,48 @@ function handleFormSubmit(e) {
     state.equipment.push(newEquipment);
     renderEquipmentList();
     renderLocations(); // To update counts
+    renderLocations(); // To update counts
     closeModal();
+}
+
+function exportToCSV() {
+    if (state.equipment.length === 0) {
+        alert('No data to export!');
+        return;
+    }
+
+    // 1. Description, 2. Qty, 3. P/N, 4. S/N, 5. Man Date, 6. Exp Date, 7. Note
+    const headers = ['Description', 'Quantity', 'Part Number', 'Serial Number', 'Manufacture Date', 'Expire Date', 'Notes'];
+
+    const rows = state.equipment.map(item => {
+        // Handle status tags in description or separate? User asked for Description in col 1.
+        // I will append status to description if present to make it useful.
+        let desc = item.description;
+        if (item.status.na) desc += ' (N/A)';
+        if (item.status.damaged) desc += ' (DAMAGED)';
+        if (item.status.missing) desc += ' (MISSING)';
+
+        return [
+            `"${desc}"`,
+            item.quantity,
+            `"${item.partNumber || ''}"`,
+            `"${item.serialNumber || ''}"`,
+            `"${item.manufactureDate || ''}"`,
+            `"${item.expireDate || ''}"`,
+            `"${item.notes || ''}"`
+        ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `equipment_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // Start

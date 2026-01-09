@@ -1,16 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/src/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Aircraft Equipment Mapping</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroEquip Map</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-
 <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-</body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12h20M2 12l5-5m-5 5l5 5"/>
+                </svg>
+                <h1>AeroEquip Map</h1>
+            </div>
+            <div class="user-profile">
+                <div class="avatar">CK</div>
+            </div>
+        </header>
 
+        <main class="main-content">
+            <!-- Zone Selection -->
+            <section class="zone-selector">
+                <h2>Select Zone</h2>
+                <div class="zones">
+                    <button class="zone-card active" data-zone="cockpit">
+                        <div class="zone-icon">✈️</div>
+                        <h3>Cockpit</h3>
+                        <p>Flight Deck Area</p>
+                    </button>
+                    <button class="zone-card" data-zone="cabin">
+                        <div class="zone-icon">💺</div>
+                        <h3>Cabin</h3>
+                        <p>Passenger Area</p>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Sub-Zone / Location Map -->
+            <section class="location-map">
+                <div class="map-header">
+                    <h2 id="current-zone-title">Cockpit Locations</h2>
+                </div>
+                <div class="locations-grid" id="locations-container">
+                    <!-- Dynamic content will be injected here -->
+                </div>
+            </section>
+
+            <!-- Equipment List for Selected Location -->
+            <section class="equipment-section hidden" id="equipment-section">
+                <div class="section-header">
+                    <h2 id="selected-location-title">Location Equipment</h2>
+                    <button class="btn-primary" id="add-equip-btn">+ Add Equipment</button>
+                </div>
+                
+                <div class="equipment-list" id="equipment-list">
+                    <!-- Equipment items will be listed here -->
+                    <div class="empty-state">
+                        <p>No equipment mapped yet.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Add/Edit Modal -->
+        <div class="modal-overlay hidden" id="item-modal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2 id="modal-title">Add Equipment</h2>
+                    <button class="close-btn" id="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="equipment-form">
+                        <div class="form-group">
+                            <label for="description">Description</label>
+                            <input type="text" id="description" name="description" required placeholder="e.g. Life Vest">
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="part-number">Part Number</label>
+                                <input type="text" id="part-number" name="part-number" placeholder="PN-12345">
+                            </div>
+                            <div class="form-group">
+                                <label for="serial-number">Serial Number</label>
+                                <input type="text" id="serial-number" name="serial-number" placeholder="SN-98765">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="man-date">Manufacture Date</label>
+                                <input type="date" id="man-date" name="man-date">
+                            </div>
+                            <div class="form-group">
+                                <label for="exp-date">Expire Date</label>
+                                <input type="date" id="exp-date" name="exp-date">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="quantity">Quantity</label>
+                                <input type="number" id="quantity" name="quantity" min="1" value="1">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="notes">Notes</label>
+                            <textarea id="notes" name="notes" rows="3" placeholder="Additional details..."></textarea>
+                        </div>
+
+                        <div class="status-toggles">
+                            <label class="toggle-btn">
+                                <input type="checkbox" name="status-na" value="NA">
+                                <span>N/A</span>
+                            </label>
+                            <label class="toggle-btn">
+                                <input type="checkbox" name="status-damaged" value="DAMAGED">
+                                <span>DAMAGED</span>
+                            </label>
+                            <label class="toggle-btn">
+                                <input type="checkbox" name="status-missing" value="MISSING">
+                                <span>MISSING</span>
+                            </label>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" id="cancel-btn">Cancel</button>
+                            <button type="submit" class="btn-primary">Save Equipment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
 </html>

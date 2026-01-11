@@ -1,6 +1,6 @@
 // Import Firebase SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, Timestamp, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, Timestamp, doc, deleteDoc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -22,8 +22,9 @@ const aircraftCollection = collection(db, "aircrafts");
 const state = {
     currentAircraftId: null,
     currentLocation: null,
-    aircrafts: [], // Synced from Firestore
-    equipment: [] // Synced from Firestore
+    currentEditingId: null, // Track if we are editing an item
+    aircrafts: [],
+    equipment: []
 };
 
 // Configuration
@@ -57,12 +58,15 @@ const elements = {
     // Equipment Modal
     addBtn: document.getElementById('add-equip-btn'),
     modal: document.getElementById('item-modal'),
+    modalTitle: document.getElementById('modal-title'),
     closeModalBtn: document.getElementById('close-modal'),
     cancelBtn: document.getElementById('cancel-btn'),
     form: document.getElementById('equipment-form'),
+    locationSelect: document.getElementById('location-select'), // NEW
     naButtons: document.querySelectorAll('.btn-na'),
     quickNoteButtons: document.querySelectorAll('.tag-btn'),
     notesInput: document.getElementById('notes'),
+    submitBtn: document.querySelector('#equipment-form button[type="submit"]'),
 
     exportBtn: document.getElementById('export-btn')
 };
@@ -71,6 +75,13 @@ const elements = {
 function init() {
     setupEventListeners();
     setupFirestoreListeners();
+    populateLocationSelect();
+}
+
+function populateLocationSelect() {
+    elements.locationSelect.innerHTML = DEFAULT_LOCATIONS.map(loc =>
+        `<option value="${loc.id}">${loc.name}</option>`
+    ).join('');
 }
 
 // Firestore Real-time Listeners
@@ -85,7 +96,6 @@ function setupFirestoreListeners() {
         if (state.currentLocation && state.currentAircraftId) {
             renderEquipmentList();
         }
-        // Also refresh locations to update counts
         if (state.currentAircraftId) {
             renderLocations();
         }
@@ -108,7 +118,7 @@ function setupFirestoreListeners() {
 
 // Event Listeners
 function setupEventListeners() {
-    // Aircraft Modal Handling
+    // Aircraft Modal
     elements.addAircraftBtn.addEventListener('click', openAircraftModal);
     elements.closeAircraftModalBtn.addEventListener('click', closeAircraftModal);
     elements.cancelAircraftBtn.addEventListener('click', closeAircraftModal);
@@ -117,15 +127,14 @@ function setupEventListeners() {
     });
     elements.aircraftForm.addEventListener('submit', handleAircraftSubmit);
 
-    // Equipment Modal Handling
-    elements.addBtn.addEventListener('click', openModal);
+    // Equipment Modal
+    elements.addBtn.addEventListener('click', () => openModal()); // Add Mode
     elements.closeModalBtn.addEventListener('click', closeModal);
     elements.cancelBtn.addEventListener('click', closeModal);
     elements.modal.addEventListener('click', (e) => {
         if (e.target === elements.modal) closeModal();
     });
 
-    // N/A Buttons
     elements.naButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
             const targetId = e.target.dataset.target;
@@ -134,24 +143,18 @@ function setupEventListeners() {
         });
     });
 
-    // Quick Note Buttons (DAMAGED / MISSING)
     elements.quickNoteButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
             const noteText = e.target.dataset.note;
             const currentNotes = elements.notesInput.value;
-
-            // Append if not already present
             if (!currentNotes.includes(noteText)) {
                 elements.notesInput.value = currentNotes ? `${currentNotes} ${noteText}` : noteText;
             }
         });
     });
 
-    // Form Submission
     elements.form.addEventListener('submit', handleFormSubmit);
-
-    // Export Data
-    elements.exportBtn.addEventListener('click', exportToCSV);
+    elements.exportBtn.addEventListener('click', exportToXLSX);
 }
 
 // Render Functions
@@ -174,21 +177,17 @@ function renderAircrafts() {
         </div>
     `).join('');
 
-    // Add Listeners
     document.querySelectorAll('.aircraft-card').forEach(card => {
         card.addEventListener('click', (e) => {
-            if (e.target.closest('.delete-ac')) return; // Don't select if deleting
-
-            const id = card.dataset.id;
-            selectAircraft(id);
+            if (e.target.closest('.delete-ac')) return;
+            selectAircraft(card.dataset.id);
         });
     });
 
     document.querySelectorAll('.delete-ac').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const id = btn.dataset.id;
-            deleteAircraft(id);
+            deleteAircraft(btn.dataset.id);
         });
     });
 }
@@ -197,11 +196,9 @@ function selectAircraft(aircraftId) {
     state.currentAircraftId = aircraftId;
     state.currentLocation = null;
 
-    // Update UI selection
     document.querySelectorAll('.aircraft-card').forEach(c => c.classList.remove('active'));
     document.querySelector(`.aircraft-card[data-id="${aircraftId}"]`)?.classList.add('active');
 
-    // Show Locations
     elements.locationMapSection.classList.remove('hidden');
     elements.equipmentSection.classList.add('hidden');
 
@@ -227,7 +224,7 @@ async function deleteAircraft(id) {
 function renderLocations() {
     if (!state.currentAircraftId) return;
 
-    elements.currentZoneTitle.textContent = `Locations (Default)`;
+    elements.currentZoneTitle.textContent = `Locations`;
     elements.locationsContainer.innerHTML = DEFAULT_LOCATIONS.map(loc => `
         <div class="location-item ${state.currentLocation === loc.id ? 'selected' : ''}" data-id="${loc.id}">
             <div class="loc-img">${loc.icon}</div>
@@ -238,7 +235,6 @@ function renderLocations() {
         </div>
     `).join('');
 
-    // Add click listeners
     document.querySelectorAll('.location-item').forEach(item => {
         item.addEventListener('click', () => {
             document.querySelectorAll('.location-item').forEach(i => i.classList.remove('selected'));
@@ -259,7 +255,6 @@ function showEquipmentList(locationName) {
 }
 
 function renderEquipmentList() {
-    // Filter by BOTH Aircraft ID and Location ID
     const items = state.equipment.filter(item =>
         item.aircraftId === state.currentAircraftId &&
         item.locationId === state.currentLocation
@@ -275,19 +270,11 @@ function renderEquipmentList() {
     }
 
     elements.equipmentList.innerHTML = items.map(item => {
-        // Detect tags from Notes or old status field
-        const tags = [];
         const notes = item.notes ? item.notes.toUpperCase() : '';
-
-        // Check "status" object for backward compatibility OR "notes" for new system
-        const isNa = (item.status && item.status.na) || notes.includes('N/A');
-        const isDamaged = (item.status && item.status.damaged) || notes.includes('DAMAGED');
-        const isMissing = (item.status && item.status.missing) || notes.includes('MISSING');
-
-        if (isNa) tags.push('<span class="tag na">N/A</span>');
-        if (isDamaged) tags.push('<span class="tag damaged">DAMAGED</span>');
-        if (isMissing) tags.push('<span class="tag missing">MISSING</span>');
-
+        const tags = [];
+        if (notes.includes('N/A')) tags.push('<span class="tag na">N/A</span>');
+        if (notes.includes('DAMAGED')) tags.push('<span class="tag damaged">DAMAGED</span>');
+        if (notes.includes('MISSING')) tags.push('<span class="tag missing">MISSING</span>');
         const tagHtml = tags.join('');
 
         return `
@@ -303,21 +290,28 @@ function renderEquipmentList() {
                     <div class="detail-item"><strong>Qty</strong> ${item.quantity}</div>
                 </div>
                 ${item.notes ? `<div class="detail-item" style="grid-column: 1/-1; margin-top: 5px;"><strong>Notes</strong> ${item.notes}</div>` : ''}
-                <button class="icon-btn delete-equip" data-id="${item.id}" style="position: absolute; top: 10px; right: 10px; color: var(--text-muted); opacity: 0.5;">&times;</button>
+                
+                <div class="card-actions" style="position: absolute; top: 10px; right: 10px; display: flex; gap: 5px;">
+                     <button class="icon-btn edit-equip" data-id="${item.id}" title="Edit" style="width: 24px; height: 24px;">✎</button>
+                     <button class="icon-btn delete-equip" data-id="${item.id}" title="Delete" style="width: 24px; height: 24px; color: var(--danger);">&times;</button>
+                </div>
             </div>
         `;
     }).join('');
 
-    // Add delete listeners for equipment
+    // Listeners
     document.querySelectorAll('.delete-equip').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             if (confirm('Delete this equipment?')) {
-                try {
-                    await deleteDoc(doc(db, "equipment", btn.dataset.id));
-                } catch (err) {
-                    console.error(err);
-                }
+                await deleteDoc(doc(db, "equipment", btn.dataset.id));
             }
+        });
+    });
+
+    document.querySelectorAll('.edit-equip').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const item = state.equipment.find(i => i.id === btn.dataset.id);
+            if (item) openModal(item);
         });
     });
 }
@@ -330,7 +324,7 @@ function getEquipmentCount(locationId) {
     ).length;
 }
 
-// Modal Functions
+// Modal Functions - UPDATED FOR EDIT
 function openAircraftModal() {
     elements.aircraftForm.reset();
     elements.aircraftModal.classList.add('active');
@@ -343,42 +337,63 @@ function closeAircraftModal() {
 async function handleAircraftSubmit(e) {
     e.preventDefault();
     const formData = new FormData(elements.aircraftForm);
-    const name = formData.get('aircraft-name');
-
     try {
         await addDoc(aircraftCollection, {
-            name: name,
+            name: formData.get('aircraft-name'),
             createdAt: Timestamp.now()
         });
         closeAircraftModal();
     } catch (err) {
-        console.error("Error adding aircraft: ", err);
         alert("Failed to add aircraft");
     }
 }
 
-function openModal() {
+function openModal(itemToEdit = null) {
     elements.form.reset();
+    state.currentEditingId = null;
+
+    // Set Location
+    if (state.currentLocation) {
+        elements.locationSelect.value = state.currentLocation;
+    }
+
+    if (itemToEdit) {
+        state.currentEditingId = itemToEdit.id;
+        elements.modalTitle.textContent = "Edit Equipment";
+        elements.submitBtn.textContent = "Update Equipment";
+
+        // Populate inputs
+        elements.locationSelect.value = itemToEdit.locationId;
+        document.getElementById('description').value = itemToEdit.description;
+        document.getElementById('part-number').value = itemToEdit.partNumber || '';
+        document.getElementById('serial-number').value = itemToEdit.serialNumber || '';
+        document.getElementById('man-date').value = itemToEdit.manufactureDate || '';
+        document.getElementById('exp-date').value = itemToEdit.expireDate || '';
+        document.getElementById('quantity').value = itemToEdit.quantity;
+        document.getElementById('notes').value = itemToEdit.notes || '';
+    } else {
+        elements.modalTitle.textContent = "Add Equipment";
+        elements.submitBtn.textContent = "Save Equipment";
+    }
+
     elements.modal.classList.add('active');
 }
 
 function closeModal() {
     elements.modal.classList.remove('active');
+    state.currentEditingId = null;
 }
 
 async function handleFormSubmit(e) {
     e.preventDefault();
-
     const formData = new FormData(elements.form);
 
-    // No longer parsing 'status-checkboxes'. 
-    // Data is implicitly in the other fields (N/A in dates, Damaged/Missing in Notes).
-    // We can save an empty status object for backward compatibility structure if we want, 
-    // or just rely on 'notes' parsing.
+    // Read Location from Dropdown!
+    const selectedLocation = elements.locationSelect.value;
 
-    const newEquipment = {
-        aircraftId: state.currentAircraftId, // LINK TO AIRCRAFT
-        locationId: state.currentLocation,
+    const equipmentData = {
+        aircraftId: state.currentAircraftId,
+        locationId: selectedLocation,
         description: formData.get('description'),
         partNumber: formData.get('part-number'),
         serialNumber: formData.get('serial-number'),
@@ -386,67 +401,64 @@ async function handleFormSubmit(e) {
         expireDate: formData.get('exp-date'),
         quantity: formData.get('quantity'),
         notes: formData.get('notes'),
-        status: {}, // Deprecated but kept structure
-        createdAt: Timestamp.now()
+        // No outdated status object
     };
 
     try {
-        const btn = elements.form.querySelector('button[type="submit"]');
-        const originalText = btn.textContent;
-        btn.textContent = 'Saving...';
-        btn.disabled = true;
+        elements.submitBtn.textContent = 'Saving...';
+        elements.submitBtn.disabled = true;
 
-        await addDoc(equipmentCollection, newEquipment);
+        if (state.currentEditingId) {
+            // Update
+            const docRef = doc(db, "equipment", state.currentEditingId);
+            await updateDoc(docRef, { ...equipmentData, updatedAt: Timestamp.now() });
+        } else {
+            // Create
+            await addDoc(equipmentCollection, { ...equipmentData, createdAt: Timestamp.now() });
+        }
 
-        btn.textContent = originalText;
-        btn.disabled = false;
         closeModal();
     } catch (e) {
-        console.error("Error adding document: ", e);
-        alert("Failed to save equipment. Check console for details.");
-        elements.form.querySelector('button[type="submit"]').disabled = false;
+        console.error("Error saving: ", e);
+        alert("Failed to save. Check console.");
+    } finally {
+        elements.submitBtn.disabled = false;
     }
 }
 
-function exportToCSV() {
+function exportToXLSX() {
     if (state.equipment.length === 0) {
         alert('No data to export!');
         return;
     }
 
-    const headers = ['Aircraft ID', 'Location', 'Description', 'Quantity', 'Part Number', 'Serial Number', 'Manufacture Date', 'Expire Date', 'Notes'];
+    // Flatten data for Excel
+    const data = state.equipment.map(item => {
+        const ac = state.aircrafts.find(a => a.id === item.aircraftId);
+        const loc = DEFAULT_LOCATIONS.find(l => l.id === item.locationId);
 
-    const rows = state.equipment.map(item => {
-        let desc = item.description;
-        // Basic check for tags in notes
-        const notes = (item.notes || '').toUpperCase();
-        if (notes.includes('N/A')) desc += ' (N/A)';
-        if (notes.includes('DAMAGED')) desc += ' (DAMAGED)';
-        if (notes.includes('MISSING')) desc += ' (MISSING)';
-
-        return [
-            `"${item.aircraftId || 'Unknown'}"`,
-            `"${item.locationId}"`,
-            `"${desc}"`,
-            item.quantity,
-            `"${item.partNumber || ''}"`,
-            `"${item.serialNumber || ''}"`,
-            `"${item.manufactureDate || ''}"`,
-            `"${item.expireDate || ''}"`,
-            `"${item.notes || ''}"`
-        ].join(',');
+        return {
+            'Aircraft': ac ? ac.name : 'Unknown',
+            'Location': loc ? loc.name : item.locationId,
+            'Description': item.description,
+            'Part Number': item.partNumber || '',
+            'Serial Number': item.serialNumber || '',
+            'Quantity': item.quantity,
+            'Manufacture Date': item.manufactureDate || '',
+            'Expire Date': item.expireDate || '',
+            'Notes': item.notes || ''
+        };
     });
 
-    const csvContent = [headers.join(','), ...rows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `equipment_export_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Generate Worksheet
+    const ws = XLSX.utils.json_to_sheet(data);
+
+    // Generate Workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Equipment Map");
+
+    // Write File
+    XLSX.writeFile(wb, `AeroEquip_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
 // Start

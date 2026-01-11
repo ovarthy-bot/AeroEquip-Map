@@ -484,6 +484,23 @@ textarea:focus {
     }
 }
 
+/* Actions for Equipment Card */
+.edit-equip {
+    color: hsl(var(--secondary));
+}
+
+.edit-equip:hover {
+    background: hsl(var(--secondary));
+    border-color: hsl(var(--secondary));
+    color: black;
+}
+
+.delete-equip:hover {
+    background: hsl(var(--danger));
+    border-color: hsl(var(--danger));
+    color: white;
+}
+
 @media (max-width: 600px) {
     .zones {
         flex-direction: column;

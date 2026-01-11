@@ -484,6 +484,51 @@ textarea:focus {
     }
 }
 
+/* Visible Actions for Equipment Card */
+.card-actions-visible {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+    grid-column: 1/-1;
+    border-top: 1px solid var(--glass-border);
+    padding-top: 12px;
+}
+
+.action-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.05);
+    color: hsl(var(--text-muted));
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: 0.2s;
+}
+
+.action-btn:hover {
+    background: hsl(var(--secondary));
+    border-color: hsl(var(--secondary));
+    color: black;
+}
+
+.action-btn.delete-equip:hover {
+    background: hsl(var(--danger));
+    border-color: hsl(var(--danger));
+    color: white;
+}
+
+.sub-location-tag {
+    font-size: 0.85rem;
+    color: hsl(var(--secondary));
+    font-weight: 600;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 /* Actions for Equipment Card */
 .edit-equip {
     color: hsl(var(--secondary));

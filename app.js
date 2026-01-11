@@ -22,7 +22,7 @@ const aircraftCollection = collection(db, "aircrafts");
 const state = {
     currentAircraftId: null,
     currentLocation: null,
-    currentEditingId: null, // Track if we are editing an item
+    currentEditingId: null,
     aircrafts: [],
     equipment: []
 };
@@ -62,7 +62,7 @@ const elements = {
     closeModalBtn: document.getElementById('close-modal'),
     cancelBtn: document.getElementById('cancel-btn'),
     form: document.getElementById('equipment-form'),
-    locationSelect: document.getElementById('location-select'), // NEW
+    specificLocationInput: document.getElementById('specific-location'), // NEW
     naButtons: document.querySelectorAll('.btn-na'),
     quickNoteButtons: document.querySelectorAll('.tag-btn'),
     notesInput: document.getElementById('notes'),
@@ -75,13 +75,7 @@ const elements = {
 function init() {
     setupEventListeners();
     setupFirestoreListeners();
-    populateLocationSelect();
-}
-
-function populateLocationSelect() {
-    elements.locationSelect.innerHTML = DEFAULT_LOCATIONS.map(loc =>
-        `<option value="${loc.id}">${loc.name}</option>`
-    ).join('');
+    // No more populateLocationSelect since we use text input
 }
 
 // Firestore Real-time Listeners
@@ -279,21 +273,24 @@ function renderEquipmentList() {
 
         return `
             <div class="equip-card">
-                <div class="equip-card-header">
-                    <div class="equip-title">${item.description}</div>
-                    <div class="equip-tags">${tagHtml}</div>
+                <div class="equip-card-main">
+                    <div class="equip-card-header">
+                        <div class="equip-title">${item.description}</div>
+                        <div class="equip-tags">${tagHtml}</div>
+                    </div>
+                    ${item.specificLocation ? `<div class="sub-location-tag">📍 ${item.specificLocation}</div>` : ''}
+                    <div class="equip-details">
+                        ${item.partNumber ? `<div class="detail-item"><strong>P/N</strong> ${item.partNumber}</div>` : ''}
+                        ${item.serialNumber ? `<div class="detail-item"><strong>S/N</strong> ${item.serialNumber}</div>` : ''}
+                        ${item.expireDate ? `<div class="detail-item"><strong>Exp</strong> ${item.expireDate}</div>` : ''}
+                        <div class="detail-item"><strong>Qty</strong> ${item.quantity}</div>
+                    </div>
+                    ${item.notes ? `<div class="detail-item" style="grid-column: 1/-1; margin-top: 5px;"><strong>Notes</strong> ${item.notes}</div>` : ''}
                 </div>
-                <div class="equip-details">
-                    ${item.partNumber ? `<div class="detail-item"><strong>P/N</strong> ${item.partNumber}</div>` : ''}
-                    ${item.serialNumber ? `<div class="detail-item"><strong>S/N</strong> ${item.serialNumber}</div>` : ''}
-                    ${item.expireDate ? `<div class="detail-item"><strong>Exp</strong> ${item.expireDate}</div>` : ''}
-                    <div class="detail-item"><strong>Qty</strong> ${item.quantity}</div>
-                </div>
-                ${item.notes ? `<div class="detail-item" style="grid-column: 1/-1; margin-top: 5px;"><strong>Notes</strong> ${item.notes}</div>` : ''}
                 
-                <div class="card-actions" style="position: absolute; top: 10px; right: 10px; display: flex; gap: 5px;">
-                     <button class="icon-btn edit-equip" data-id="${item.id}" title="Edit" style="width: 24px; height: 24px;">✎</button>
-                     <button class="icon-btn delete-equip" data-id="${item.id}" title="Delete" style="width: 24px; height: 24px; color: var(--danger);">&times;</button>
+                <div class="card-actions-visible">
+                     <button class="action-btn edit-equip" data-id="${item.id}">Edit</button>
+                     <button class="action-btn delete-equip" data-id="${item.id}">Delete</button>
                 </div>
             </div>
         `;
@@ -324,7 +321,7 @@ function getEquipmentCount(locationId) {
     ).length;
 }
 
-// Modal Functions - UPDATED FOR EDIT
+// Modal Functions - UPDATED
 function openAircraftModal() {
     elements.aircraftForm.reset();
     elements.aircraftModal.classList.add('active');
@@ -352,18 +349,13 @@ function openModal(itemToEdit = null) {
     elements.form.reset();
     state.currentEditingId = null;
 
-    // Set Location
-    if (state.currentLocation) {
-        elements.locationSelect.value = state.currentLocation;
-    }
-
     if (itemToEdit) {
         state.currentEditingId = itemToEdit.id;
         elements.modalTitle.textContent = "Edit Equipment";
         elements.submitBtn.textContent = "Update Equipment";
 
         // Populate inputs
-        elements.locationSelect.value = itemToEdit.locationId;
+        elements.specificLocationInput.value = itemToEdit.specificLocation || '';
         document.getElementById('description').value = itemToEdit.description;
         document.getElementById('part-number').value = itemToEdit.partNumber || '';
         document.getElementById('serial-number').value = itemToEdit.serialNumber || '';
@@ -388,12 +380,11 @@ async function handleFormSubmit(e) {
     e.preventDefault();
     const formData = new FormData(elements.form);
 
-    // Read Location from Dropdown!
-    const selectedLocation = elements.locationSelect.value;
-
+    // We use CURRENT location for category, and Form Input for specific location
     const equipmentData = {
         aircraftId: state.currentAircraftId,
-        locationId: selectedLocation,
+        locationId: state.currentLocation,
+        specificLocation: formData.get('specific-location'), // NEW FIELD
         description: formData.get('description'),
         partNumber: formData.get('part-number'),
         serialNumber: formData.get('serial-number'),
@@ -401,7 +392,6 @@ async function handleFormSubmit(e) {
         expireDate: formData.get('exp-date'),
         quantity: formData.get('quantity'),
         notes: formData.get('notes'),
-        // No outdated status object
     };
 
     try {
@@ -432,14 +422,14 @@ function exportToXLSX() {
         return;
     }
 
-    // Flatten data for Excel
     const data = state.equipment.map(item => {
         const ac = state.aircrafts.find(a => a.id === item.aircraftId);
         const loc = DEFAULT_LOCATIONS.find(l => l.id === item.locationId);
 
         return {
             'Aircraft': ac ? ac.name : 'Unknown',
-            'Location': loc ? loc.name : item.locationId,
+            'Category': loc ? loc.name : item.locationId,
+            'Specific Location': item.specificLocation || '',
             'Description': item.description,
             'Part Number': item.partNumber || '',
             'Serial Number': item.serialNumber || '',
@@ -450,14 +440,9 @@ function exportToXLSX() {
         };
     });
 
-    // Generate Worksheet
     const ws = XLSX.utils.json_to_sheet(data);
-
-    // Generate Workbook
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Equipment Map");
-
-    // Write File
     XLSX.writeFile(wb, `AeroEquip_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 

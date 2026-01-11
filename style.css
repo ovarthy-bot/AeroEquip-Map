@@ -465,3 +465,116 @@ input:focus, textarea:focus {
     .zones { flex-direction: column; }
     .form-row { flex-direction: column; gap: 0; }
 }
+
+/* Aircraft Fleet Styles */
+.aircraft-selector {
+    margin-bottom: 40px;
+}
+
+.aircraft-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.aircraft-card {
+    background: hsl(var(--bg-card));
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 160px;
+}
+
+.aircraft-card:hover {
+    transform: translateY(-4px);
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.aircraft-card.active {
+    background: linear-gradient(145deg, hsl(var(--bg-card)), hsl(var(--primary) / 0.15));
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.2);
+}
+
+.ac-icon {
+    font-size: 2.5rem;
+    margin-bottom: auto;
+    opacity: 0.8;
+}
+
+.ac-info h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: hsl(var(--text-main));
+}
+
+.ac-info p {
+    font-size: 0.9rem;
+    color: hsl(var(--text-muted));
+}
+
+.ac-actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    opacity: 0;
+    transition: 0.2s;
+}
+
+.aircraft-card:hover .ac-actions {
+    opacity: 1;
+}
+
+.icon-btn {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--glass-border);
+    color: hsl(var(--text-muted));
+    cursor: pointer;
+    font-size: 1.1rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+}
+
+.icon-btn:hover {
+    background: hsl(var(--danger));
+    border-color: hsl(var(--danger));
+    color: white;
+}
+
+/* Input Group (for Date + N/A) */
+.input-group {
+    display: flex;
+    gap: 10px;
+}
+
+.input-group input {
+    flex: 1;
+}
+
+.btn-na {
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.btn-na:hover {
+    background: hsl(var(--bg-card));
+    border-color: hsl(var(--primary));
+    color: hsl(var(--primary));
+}

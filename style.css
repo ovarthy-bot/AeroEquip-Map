@@ -3,11 +3,11 @@
     --primary-dark: 210 100% 40%;
     --secondary: 190 90% 50%;
     --accent: 330 80% 60%;
-    
+
     --bg-dark: 220 30% 10%;
     --bg-card: 220 25% 15%;
     --bg-light: 220 20% 95%;
-    
+
     --text-main: 220 10% 95%;
     --text-muted: 220 10% 70%;
     --text-dark: 220 30% 15%;
@@ -19,7 +19,7 @@
     --radius-lg: 16px;
     --radius-md: 12px;
     --radius-sm: 8px;
-    
+
     --glass-bg: rgba(30, 35, 50, 0.7);
     --glass-border: rgba(255, 255, 255, 0.1);
 }
@@ -270,9 +270,20 @@ body {
     letter-spacing: 0.5px;
 }
 
-.tag.na { background: hsl(var(--text-muted) / 0.2); color: hsl(var(--text-muted)); }
-.tag.damaged { background: hsl(var(--danger) / 0.2); color: hsl(var(--danger)); }
-.tag.missing { background: hsl(var(--warning) / 0.2); color: hsl(var(--warning)); }
+.tag.na {
+    background: hsl(var(--text-muted) / 0.2);
+    color: hsl(var(--text-muted));
+}
+
+.tag.damaged {
+    background: hsl(var(--danger) / 0.2);
+    color: hsl(var(--danger));
+}
+
+.tag.missing {
+    background: hsl(var(--warning) / 0.2);
+    color: hsl(var(--warning));
+}
 
 .equip-details {
     display: grid;
@@ -320,7 +331,7 @@ body {
     max-width: 500px;
     border-radius: var(--radius-lg);
     border: 1px solid var(--glass-border);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
     transform: translateY(20px);
     transition: 0.3s;
     max-height: 90vh;
@@ -372,7 +383,9 @@ label {
     color: hsl(var(--text-muted));
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
     width: 100%;
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--glass-border);
@@ -383,57 +396,58 @@ input, select, textarea {
     font-size: 1rem;
 }
 
-input:focus, textarea:focus {
+input:focus,
+textarea:focus {
     outline: none;
     border-color: hsl(var(--primary));
     background: rgba(0, 0, 0, 0.4);
 }
 
-.status-toggles {
+/* Quick Notes / Status Tags */
+.quick-notes {
+    margin: 20px 0;
+}
+
+.quick-notes label {
+    margin-bottom: 10px;
+}
+
+.note-buttons {
     display: flex;
     gap: 12px;
-    margin: 20px 0;
-    flex-wrap: wrap;
 }
 
-.toggle-btn {
-    cursor: pointer;
-    position: relative;
-}
-
-.toggle-btn input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.toggle-btn span {
-    display: block;
+.tag-btn {
     padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--glass-border);
     border-radius: 20px;
     font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--glass-border);
     transition: 0.2s;
-    font-weight: 500;
+    background: rgba(255, 255, 255, 0.05);
+    color: hsl(var(--text-muted));
 }
 
-.toggle-btn input:checked + span {
-    background: hsl(var(--primary));
-    color: white;
-    border-color: hsl(var(--primary));
+.tag-btn:hover {
+    transform: translateY(-2px);
 }
 
-/* Specific toggle colors */
-.toggle-btn:nth-child(2) input:checked + span {
+.tag-btn.damaged:hover {
     background: hsl(var(--danger));
     border-color: hsl(var(--danger));
+    color: white;
 }
-.toggle-btn:nth-child(3) input:checked + span {
+
+.tag-btn.missing:hover {
     background: hsl(var(--warning));
     border-color: hsl(var(--warning));
     color: black;
+}
+
+/* Active state for clicks (optional visual feedback) */
+.tag-btn:active {
+    transform: scale(0.95);
 }
 
 .form-actions {
@@ -454,16 +468,31 @@ input:focus, textarea:focus {
 }
 
 /* Utilities */
-.hidden { display: none !important; }
+.hidden {
+    display: none !important;
+}
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @media (max-width: 600px) {
-    .zones { flex-direction: column; }
-    .form-row { flex-direction: column; gap: 0; }
+    .zones {
+        flex-direction: column;
+    }
+
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
 }
 
 /* Aircraft Fleet Styles */
@@ -495,7 +524,7 @@ input:focus, textarea:focus {
 .aircraft-card:hover {
     transform: translateY(-4px);
     border-color: hsl(var(--primary) / 0.5);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 .aircraft-card.active {
@@ -535,7 +564,7 @@ input:focus, textarea:focus {
 }
 
 .icon-btn {
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--glass-border);
     color: hsl(var(--text-muted));
     cursor: pointer;

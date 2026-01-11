@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 
 <body>
@@ -24,7 +25,7 @@
             <div class="user-profile">
                 <button class="btn-primary" id="export-btn"
                     style="margin-right: 15px; padding: 8px 16px; font-size: 0.9rem;">
-                    ⬇ Export Excel
+                    ⬇ Export XLSX
                 </button>
                 <div class="avatar">CK</div>
             </div>
@@ -77,6 +78,14 @@
                 </div>
                 <div class="modal-body">
                     <form id="equipment-form">
+                        <!-- Location Select (New) -->
+                        <div class="form-group">
+                            <label for="location-select">Location</label>
+                            <select id="location-select" name="location-select" required>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+
                         <div class="form-group">
                             <label for="description">Description</label>
                             <input type="text" id="description" name="description" required placeholder="e.g. Life Vest"
@@ -101,10 +110,6 @@
                                 <option value="EMERGENCY MEDICAL KIT">
                                 <option value="CRASH AXE">
                                 <option value="FIRST AID KIT">
-                                <option value="MANUAL RELEASE TOOL">
-                                <option value="DEMO KIT">
-                                <option value="LIFE RAFT">
-                                <option value="ESCAPE ROPE">
                             </datalist>
                         </div>
 
@@ -112,18 +117,82 @@
                             <div class="form-group">
                                 <label for="part-number">Part Number</label>
                                 <div class="input-group">
-                                    <input type="text" id="part-number" name="part-number" placeholder="PN-12345">
+                                    <input type="text" id="part-number" name="part-number" placeholder="PN-12345"
+                                        list="part-number-suggestions">
                                     <button type="button" class="btn-secondary btn-na"
                                         data-target="part-number">N/A</button>
                                 </div>
+                                <datalist id="part-number-suggestions">
+                                    <option value="P01074-201WC">
+                                    <option value="680-0040-000">
+                                    <option value="6901500000">
+                                    <option value="E28180-20-0006">
+                                    <option value="P3APP003010D">
+                                    <option value="2226-2-011-8049">
+                                    <option value="P2-07-0001-214">
+                                    <option value="995000">
+                                    <option value="FKK8-35KL">
+                                    <option value="MF20-534">
+                                    <option value="PVG EMK">
+                                    <option value="PVG FAK 10">
+                                    <option value="502748-401-2256">
+                                    <option value="2226-1-031-8049">
+                                    <option value="P01074-101WC">
+                                    <option value="01N65920">
+                                    <option value="9700-C1A-BF23A">
+                                    <option value="289-601-248">
+                                    <option value="R0372A305">
+                                    <option value="PVG FAK">
+                                    <option value="289-601-212">
+                                    <option value="P0640-101">
+                                    <option value="2226-5-011-8049">
+                                    <option value="60128-303">
+                                    <option value="04N64255">
+                                </datalist>
                             </div>
                             <div class="form-group">
                                 <label for="serial-number">Serial Number</label>
                                 <div class="input-group">
-                                    <input type="text" id="serial-number" name="serial-number" placeholder="SN-98765">
+                                    <input type="text" id="serial-number" name="serial-number" placeholder="SN-98765"
+                                        list="serial-number-suggestions">
                                     <button type="button" class="btn-secondary btn-na"
                                         data-target="serial-number">N/A</button>
                                 </div>
+                                <datalist id="serial-number-suggestions">
+                                    <option value="7774">
+                                    <option value="123053">
+                                    <option value="123179">
+                                    <option value="322054">
+                                    <option value="13438671">
+                                    <option value="1710290008">
+                                    <option value="6928600300">
+                                    <option value="17080230078">
+                                    <option value="18010760020">
+                                    <option value="20121110018">
+                                    <option value="20121120017">
+                                    <option value="22011670033">
+                                    <option value="23030770029">
+                                    <option value="24052370086">
+                                    <option value="24102110036">
+                                    <option value="25021810014">
+                                    <option value="16350W/48583">
+                                    <option value="18406W/6534F0">
+                                    <option value="61156Y">
+                                    <option value="A5CF3C093">
+                                    <option value="A5D0E8059">
+                                    <option value="A5D23031">
+                                    <option value="B103422">
+                                    <option value="B91523">
+                                    <option value="C11415">
+                                    <option value="C20698">
+                                    <option value="P06121190">
+                                    <option value="P13062146">
+                                    <option value="P19192143">
+                                    <option value="SE09853">
+                                    <option value="ST51847">
+                                    <option value="TAI25078">
+                                    <option value="TAM25057">
+                                </datalist>
                             </div>
                         </div>
 

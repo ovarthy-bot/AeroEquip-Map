@@ -23,6 +23,11 @@
                 <h1>AeroEquip Map</h1>
             </div>
             <div class="user-profile">
+                <input type="file" id="import-file" accept=".xlsx, .xls" style="display: none;">
+                <button class="btn-primary" id="import-btn"
+                    style="margin-right: 15px; padding: 8px 16px; font-size: 0.9rem; background: hsl(var(--secondary)); color: black;">
+                    ⬆ Import XLSX
+                </button>
                 <button class="btn-primary" id="export-btn"
                     style="margin-right: 15px; padding: 8px 16px; font-size: 0.9rem;">
                     ⬇ Export XLSX
@@ -82,7 +87,7 @@
                         <div class="form-group">
                             <label for="specific-location">Specific Location</label>
                             <input type="text" id="specific-location" name="specific-location"
-                                placeholder="OHSB 23DEF, LH4 DOOR C/ATT. SEAT etc.">
+                                placeholder="e.g. Shelf 1, Box A">
                         </div>
 
                         <div class="form-group">

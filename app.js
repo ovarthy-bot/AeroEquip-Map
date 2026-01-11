@@ -62,20 +62,22 @@ const elements = {
     closeModalBtn: document.getElementById('close-modal'),
     cancelBtn: document.getElementById('cancel-btn'),
     form: document.getElementById('equipment-form'),
-    specificLocationInput: document.getElementById('specific-location'), // NEW
+    specificLocationInput: document.getElementById('specific-location'),
     naButtons: document.querySelectorAll('.btn-na'),
     quickNoteButtons: document.querySelectorAll('.tag-btn'),
     notesInput: document.getElementById('notes'),
     submitBtn: document.querySelector('#equipment-form button[type="submit"]'),
 
-    exportBtn: document.getElementById('export-btn')
+    // Import/Export
+    exportBtn: document.getElementById('export-btn'),
+    importBtn: document.getElementById('import-btn'),
+    importFile: document.getElementById('import-file')
 };
 
 // Initialization
 function init() {
     setupEventListeners();
     setupFirestoreListeners();
-    // No more populateLocationSelect since we use text input
 }
 
 // Firestore Real-time Listeners
@@ -137,18 +139,31 @@ function setupEventListeners() {
         });
     });
 
+    // Quick Note Buttons (Mutually Exclusive)
     elements.quickNoteButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const noteText = e.target.dataset.note;
-            const currentNotes = elements.notesInput.value;
-            if (!currentNotes.includes(noteText)) {
-                elements.notesInput.value = currentNotes ? `${currentNotes} ${noteText}` : noteText;
-            }
+            const noteText = e.target.dataset.note; // DAMAGED or MISSING
+            let currentNotes = elements.notesInput.value;
+
+            // 1. Remove ANY existing status tags from the current notes
+            const statuses = ['DAMAGED', 'MISSING'];
+            statuses.forEach(s => {
+                // Regex to remove word borders
+                const regex = new RegExp(`\\b${s}\\b`, 'g');
+                currentNotes = currentNotes.replace(regex, '').trim();
+            });
+
+            // 2. Append the NEW status
+            elements.notesInput.value = currentNotes ? `${currentNotes} ${noteText}` : noteText;
         });
     });
 
     elements.form.addEventListener('submit', handleFormSubmit);
+
+    // Import/Export
     elements.exportBtn.addEventListener('click', exportToXLSX);
+    elements.importBtn.addEventListener('click', () => elements.importFile.click());
+    elements.importFile.addEventListener('change', handleImportXLSX);
 }
 
 // Render Functions
@@ -321,7 +336,7 @@ function getEquipmentCount(locationId) {
     ).length;
 }
 
-// Modal Functions - UPDATED
+// Modal Functions
 function openAircraftModal() {
     elements.aircraftForm.reset();
     elements.aircraftModal.classList.add('active');
@@ -354,7 +369,6 @@ function openModal(itemToEdit = null) {
         elements.modalTitle.textContent = "Edit Equipment";
         elements.submitBtn.textContent = "Update Equipment";
 
-        // Populate inputs
         elements.specificLocationInput.value = itemToEdit.specificLocation || '';
         document.getElementById('description').value = itemToEdit.description;
         document.getElementById('part-number').value = itemToEdit.partNumber || '';
@@ -380,11 +394,10 @@ async function handleFormSubmit(e) {
     e.preventDefault();
     const formData = new FormData(elements.form);
 
-    // We use CURRENT location for category, and Form Input for specific location
     const equipmentData = {
         aircraftId: state.currentAircraftId,
         locationId: state.currentLocation,
-        specificLocation: formData.get('specific-location'), // NEW FIELD
+        specificLocation: formData.get('specific-location'),
         description: formData.get('description'),
         partNumber: formData.get('part-number'),
         serialNumber: formData.get('serial-number'),
@@ -399,11 +412,9 @@ async function handleFormSubmit(e) {
         elements.submitBtn.disabled = true;
 
         if (state.currentEditingId) {
-            // Update
             const docRef = doc(db, "equipment", state.currentEditingId);
             await updateDoc(docRef, { ...equipmentData, updatedAt: Timestamp.now() });
         } else {
-            // Create
             await addDoc(equipmentCollection, { ...equipmentData, createdAt: Timestamp.now() });
         }
 
@@ -416,6 +427,7 @@ async function handleFormSubmit(e) {
     }
 }
 
+// --- EXPORT ---
 function exportToXLSX() {
     if (state.equipment.length === 0) {
         alert('No data to export!');
@@ -427,7 +439,7 @@ function exportToXLSX() {
         const loc = DEFAULT_LOCATIONS.find(l => l.id === item.locationId);
 
         return {
-            'Aircraft': ac ? ac.name : 'Unknown',
+            'Aircraft': ac ? ac.name : 'Unknown', // Match Key for Import
             'Category': loc ? loc.name : item.locationId,
             'Specific Location': item.specificLocation || '',
             'Description': item.description,
@@ -444,6 +456,84 @@ function exportToXLSX() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Equipment Map");
     XLSX.writeFile(wb, `AeroEquip_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+// --- IMPORT ---
+async function handleImportXLSX(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+
+            // Assume first sheet
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            if (jsonData.length === 0) {
+                alert("File is empty or invalid format.");
+                return;
+            }
+
+            if (!confirm(`Found ${jsonData.length} items. Import them now?`)) return;
+
+            // Process Data
+            let importedCount = 0;
+            for (const row of jsonData) {
+                // Find or Default Aircraft
+                let aircraftId = null;
+                const acName = row['Aircraft'];
+
+                // Try to find existing aircraft by name
+                const existingAc = state.aircrafts.find(ac => ac.name === acName);
+                if (existingAc) {
+                    aircraftId = existingAc.id;
+                } else if (state.currentAircraftId) {
+                    // Fallback: Use Currently Selected Aircraft
+                    aircraftId = state.currentAircraftId;
+                } else {
+                    // Fallback: Skip if no aircraft context
+                    console.warn("Skipping item row, no matching aircraft found:", row);
+                    continue;
+                }
+
+                // Map Category Name -> ID
+                const locName = row['Category'];
+                const locObj = DEFAULT_LOCATIONS.find(l => l.name === locName);
+                const locationId = locObj ? locObj.id : (state.currentLocation || 'cpt-ohb'); // Fallback
+
+                await addDoc(equipmentCollection, {
+                    aircraftId: aircraftId,
+                    locationId: locationId,
+                    specificLocation: row['Specific Location'],
+                    description: row['Description'],
+                    partNumber: row['Part Number'],
+                    serialNumber: row['Serial Number'],
+                    quantity: row['Quantity'] || 1,
+                    manufactureDate: row['Manufacture Date'],
+                    expireDate: row['Expire Date'],
+                    notes: row['Notes'],
+                    createdAt: Timestamp.now()
+                });
+                importedCount++;
+            }
+
+            alert(`Successfully imported ${importedCount} items.`);
+            // Reset file input
+            elements.importFile.value = '';
+
+        } catch (err) {
+            console.error("Import Error: ", err);
+            alert("Failed to import file. Check format.");
+        }
+    };
+
+    reader.readAsArrayBuffer(file);
 }
 
 // Start

@@ -1,6 +1,6 @@
 // Import Firebase SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, Timestamp, doc, deleteDoc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, Timestamp, doc, deleteDoc, updateDoc, getDoc, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -215,9 +215,22 @@ function selectAircraft(aircraftId) {
 }
 
 async function deleteAircraft(id) {
-    if (confirm('Are you sure you want to delete this aircraft? This action cannot be undone.')) {
+    if (confirm('Are you sure you want to delete this aircraft AND ALL its equipment? This action cannot be undone.')) {
         try {
+            // 1. Delete all equipment associated with this aircraft
+            const q = query(equipmentCollection, where("aircraftId", "==", id));
+            const snapshot = await getDocs(q);
+
+            // Use batch for better performance/atomicity
+            const batch = writeBatch(db);
+            snapshot.docs.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+
+            // 2. Delete the aircraft folder itself
             await deleteDoc(doc(db, "aircrafts", id));
+
             if (state.currentAircraftId === id) {
                 state.currentAircraftId = null;
                 elements.locationMapSection.classList.add('hidden');

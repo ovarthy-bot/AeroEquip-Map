@@ -31,27 +31,21 @@
         </header>
 
         <main class="main-content">
-            <!-- Zone Selection -->
-            <section class="zone-selector">
-                <h2>Select Zone</h2>
-                <div class="zones">
-                    <button class="zone-card active" data-zone="cockpit">
-                        <div class="zone-icon">✈️</div>
-                        <h3>Cockpit</h3>
-                        <p>Flight Deck Area</p>
-                    </button>
-                    <button class="zone-card" data-zone="cabin">
-                        <div class="zone-icon">💺</div>
-                        <h3>Cabin</h3>
-                        <p>Passenger Area</p>
-                    </button>
+            <!-- Aircraft Fleet Management -->
+            <section class="aircraft-selector">
+                <div class="section-header">
+                    <h2>Aircraft Fleet</h2>
+                    <button class="btn-primary" id="add-aircraft-btn">+ Add Aircraft</button>
+                </div>
+                <div class="aircraft-grid" id="aircraft-container">
+                    <!-- Dynamic aircraft folders will be injected here -->
                 </div>
             </section>
 
             <!-- Sub-Zone / Location Map -->
-            <section class="location-map">
+            <section class="location-map hidden" id="location-map-section">
                 <div class="map-header">
-                    <h2 id="current-zone-title">Cockpit Locations</h2>
+                    <h2 id="current-zone-title">Locations</h2>
                 </div>
                 <div class="locations-grid" id="locations-container">
                     <!-- Dynamic content will be injected here -->
@@ -74,7 +68,7 @@
             </section>
         </main>
 
-        <!-- Add/Edit Modal -->
+        <!-- Add/Edit Equipment Modal -->
         <div class="modal-overlay" id="item-modal">
             <div class="modal">
                 <div class="modal-header">
@@ -103,11 +97,19 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="man-date">Manufacture Date</label>
-                                <input type="date" id="man-date" name="man-date">
+                                <div class="input-group">
+                                    <input type="text" id="man-date" name="man-date" placeholder="YYYY-MM-DD">
+                                    <button type="button" class="btn-secondary btn-na"
+                                        data-target="man-date">N/A</button>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label for="exp-date">Expire Date</label>
-                                <input type="date" id="exp-date" name="exp-date">
+                                <div class="input-group">
+                                    <input type="text" id="exp-date" name="exp-date" placeholder="YYYY-MM-DD">
+                                    <button type="button" class="btn-secondary btn-na"
+                                        data-target="exp-date">N/A</button>
+                                </div>
                             </div>
                         </div>
 
@@ -146,6 +148,30 @@
                 </div>
             </div>
         </div>
+
+        <!-- Add Aircraft Modal -->
+        <div class="modal-overlay" id="aircraft-modal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2 id="aircraft-modal-title">Add New Aircraft</h2>
+                    <button class="close-btn" id="close-aircraft-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="aircraft-form">
+                        <div class="form-group">
+                            <label for="aircraft-name">Aircraft Name</label>
+                            <input type="text" id="aircraft-name" name="aircraft-name" required
+                                placeholder="e.g. TC-JBA">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" id="cancel-aircraft-btn">Cancel</button>
+                            <button type="submit" class="btn-primary">Save Aircraft</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
     </div>
     <script type="module" src="app.js"></script>
 </body>

@@ -61,6 +61,8 @@ const elements = {
     cancelBtn: document.getElementById('cancel-btn'),
     form: document.getElementById('equipment-form'),
     naButtons: document.querySelectorAll('.btn-na'),
+    quickNoteButtons: document.querySelectorAll('.tag-btn'),
+    notesInput: document.getElementById('notes'),
 
     exportBtn: document.getElementById('export-btn')
 };
@@ -129,6 +131,19 @@ function setupEventListeners() {
             const targetId = e.target.dataset.target;
             const input = document.getElementById(targetId);
             if (input) input.value = "N/A";
+        });
+    });
+
+    // Quick Note Buttons (DAMAGED / MISSING)
+    elements.quickNoteButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const noteText = e.target.dataset.note;
+            const currentNotes = elements.notesInput.value;
+
+            // Append if not already present
+            if (!currentNotes.includes(noteText)) {
+                elements.notesInput.value = currentNotes ? `${currentNotes} ${noteText}` : noteText;
+            }
         });
     });
 
@@ -260,10 +275,19 @@ function renderEquipmentList() {
     }
 
     elements.equipmentList.innerHTML = items.map(item => {
+        // Detect tags from Notes or old status field
         const tags = [];
-        if (item.status.na) tags.push('<span class="tag na">N/A</span>');
-        if (item.status.damaged) tags.push('<span class="tag damaged">DAMAGED</span>');
-        if (item.status.missing) tags.push('<span class="tag missing">MISSING</span>');
+        const notes = item.notes ? item.notes.toUpperCase() : '';
+
+        // Check "status" object for backward compatibility OR "notes" for new system
+        const isNa = (item.status && item.status.na) || notes.includes('N/A');
+        const isDamaged = (item.status && item.status.damaged) || notes.includes('DAMAGED');
+        const isMissing = (item.status && item.status.missing) || notes.includes('MISSING');
+
+        if (isNa) tags.push('<span class="tag na">N/A</span>');
+        if (isDamaged) tags.push('<span class="tag damaged">DAMAGED</span>');
+        if (isMissing) tags.push('<span class="tag missing">MISSING</span>');
+
         const tagHtml = tags.join('');
 
         return `
@@ -347,11 +371,10 @@ async function handleFormSubmit(e) {
 
     const formData = new FormData(elements.form);
 
-    const status = {
-        na: formData.get('status-na') === 'NA',
-        damaged: formData.get('status-damaged') === 'DAMAGED',
-        missing: formData.get('status-missing') === 'MISSING'
-    };
+    // No longer parsing 'status-checkboxes'. 
+    // Data is implicitly in the other fields (N/A in dates, Damaged/Missing in Notes).
+    // We can save an empty status object for backward compatibility structure if we want, 
+    // or just rely on 'notes' parsing.
 
     const newEquipment = {
         aircraftId: state.currentAircraftId, // LINK TO AIRCRAFT
@@ -363,7 +386,7 @@ async function handleFormSubmit(e) {
         expireDate: formData.get('exp-date'),
         quantity: formData.get('quantity'),
         notes: formData.get('notes'),
-        status: status,
+        status: {}, // Deprecated but kept structure
         createdAt: Timestamp.now()
     };
 
@@ -386,9 +409,6 @@ async function handleFormSubmit(e) {
 }
 
 function exportToCSV() {
-    // Filter export to current aircraft? Or all? User likely wants current view context or all.
-    // Let's do ALL for now, but maybe add aircraft column.
-
     if (state.equipment.length === 0) {
         alert('No data to export!');
         return;
@@ -398,9 +418,11 @@ function exportToCSV() {
 
     const rows = state.equipment.map(item => {
         let desc = item.description;
-        if (item.status.na) desc += ' (N/A)';
-        if (item.status.damaged) desc += ' (DAMAGED)';
-        if (item.status.missing) desc += ' (MISSING)';
+        // Basic check for tags in notes
+        const notes = (item.notes || '').toUpperCase();
+        if (notes.includes('N/A')) desc += ' (N/A)';
+        if (notes.includes('DAMAGED')) desc += ' (DAMAGED)';
+        if (notes.includes('MISSING')) desc += ' (MISSING)';
 
         return [
             `"${item.aircraftId || 'Unknown'}"`,

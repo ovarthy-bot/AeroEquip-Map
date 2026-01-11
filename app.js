@@ -463,6 +463,9 @@ async function handleImportXLSX(e) {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Reset input so same file can be selected again if needed
+    elements.importFile.value = '';
+
     const reader = new FileReader();
 
     reader.onload = async (e) => {
@@ -470,66 +473,95 @@ async function handleImportXLSX(e) {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
 
-            // Assume first sheet
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
             if (jsonData.length === 0) {
-                alert("File is empty or invalid format.");
+                alert("File appears empty or unreadable. Please check the Excel file.");
                 return;
             }
 
+            console.log("Importing Data Preview:", jsonData[0]);
+
             if (!confirm(`Found ${jsonData.length} items. Import them now?`)) return;
 
-            // Process Data
             let importedCount = 0;
+            let skippedCount = 0;
+            const createdAircrafts = {}; // Local cache for new aircrafts created in this session
+
             for (const row of jsonData) {
-                // Find or Default Aircraft
-                let aircraftId = null;
-                const acName = row['Aircraft'];
+                try {
+                    // Aircraft Logic
+                    let aircraftId = null;
+                    const acName = row['Aircraft'] ? String(row['Aircraft']).trim() : null;
 
-                // Try to find existing aircraft by name
-                const existingAc = state.aircrafts.find(ac => ac.name === acName);
-                if (existingAc) {
-                    aircraftId = existingAc.id;
-                } else if (state.currentAircraftId) {
-                    // Fallback: Use Currently Selected Aircraft
-                    aircraftId = state.currentAircraftId;
-                } else {
-                    // Fallback: Skip if no aircraft context
-                    console.warn("Skipping item row, no matching aircraft found:", row);
-                    continue;
+                    if (acName) {
+                        // 1. Check existing state
+                        let existingAc = state.aircrafts.find(ac => ac.name === acName);
+
+                        // 2. Check local cache (created during this loop)
+                        if (!existingAc && createdAircrafts[acName]) {
+                            existingAc = { id: createdAircrafts[acName] };
+                        }
+
+                        if (existingAc) {
+                            aircraftId = existingAc.id;
+                        } else {
+                            // 3. Create New Aircraft
+                            const newAcRef = await addDoc(aircraftCollection, {
+                                name: acName,
+                                createdAt: Timestamp.now()
+                            });
+                            aircraftId = newAcRef.id;
+                            createdAircrafts[acName] = aircraftId; // Cache it
+                            console.log(`Created new aircraft: ${acName}`);
+                        }
+                    } else if (state.currentAircraftId) {
+                        // Fallback to current if row has no aircraft name
+                        aircraftId = state.currentAircraftId;
+                    } else {
+                        console.warn("Skipping row (No Aircraft context):", row);
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // Location Logic
+                    const locName = row['Category'] ? String(row['Category']).trim() : null;
+                    const locObj = DEFAULT_LOCATIONS.find(l => l.name === locName);
+                    // Default to Overhead Bin if invalid category is provided
+                    const locationId = locObj ? locObj.id : (DEFAULT_LOCATIONS[0].id);
+
+                    await addDoc(equipmentCollection, {
+                        aircraftId: aircraftId,
+                        locationId: locationId,
+                        specificLocation: row['Specific Location'] ? String(row['Specific Location']) : '',
+                        description: row['Description'] ? String(row['Description']) : 'Unknown Item',
+                        partNumber: row['Part Number'] ? String(row['Part Number']) : '',
+                        serialNumber: row['Serial Number'] ? String(row['Serial Number']) : '',
+                        quantity: row['Quantity'] || 1,
+                        manufactureDate: row['Manufacture Date'] ? String(row['Manufacture Date']) : '',
+                        expireDate: row['Expire Date'] ? String(row['Expire Date']) : '',
+                        notes: row['Notes'] ? String(row['Notes']) : '',
+                        createdAt: Timestamp.now()
+                    });
+                    importedCount++;
+
+                } catch (innerErr) {
+                    console.error("Error importing row:", row, innerErr);
+                    skippedCount++;
                 }
-
-                // Map Category Name -> ID
-                const locName = row['Category'];
-                const locObj = DEFAULT_LOCATIONS.find(l => l.name === locName);
-                const locationId = locObj ? locObj.id : (state.currentLocation || 'cpt-ohb'); // Fallback
-
-                await addDoc(equipmentCollection, {
-                    aircraftId: aircraftId,
-                    locationId: locationId,
-                    specificLocation: row['Specific Location'],
-                    description: row['Description'],
-                    partNumber: row['Part Number'],
-                    serialNumber: row['Serial Number'],
-                    quantity: row['Quantity'] || 1,
-                    manufactureDate: row['Manufacture Date'],
-                    expireDate: row['Expire Date'],
-                    notes: row['Notes'],
-                    createdAt: Timestamp.now()
-                });
-                importedCount++;
             }
 
-            alert(`Successfully imported ${importedCount} items.`);
-            // Reset file input
-            elements.importFile.value = '';
+            let msg = `Import complete!\n- Imported: ${importedCount}\n- Skipped: ${skippedCount}`;
+            if (skippedCount > 0) msg += `\n(Check console for details on skipped items)`;
+
+            alert(msg);
+            // Refresh logic will handle UI updates via onSnapshot
 
         } catch (err) {
-            console.error("Import Error: ", err);
-            alert("Failed to import file. Check format.");
+            console.error("Critical Import Error: ", err);
+            alert(`Failed to process file: ${err.message}`);
         }
     };
 

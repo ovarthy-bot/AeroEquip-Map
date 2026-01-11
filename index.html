@@ -79,18 +79,47 @@
                     <form id="equipment-form">
                         <div class="form-group">
                             <label for="description">Description</label>
-                            <input type="text" id="description" name="description" required
-                                placeholder="e.g. Life Vest">
+                            <input type="text" id="description" name="description" required placeholder="e.g. Life Vest"
+                                list="equipment-suggestions">
+                            <datalist id="equipment-suggestions">
+                                <option value="LIFE VEST PASSENGER">
+                                <option value="LIFE VEST CREW">
+                                <option value="LIFE VEST SPARE">
+                                <option value="LIFE VEST INFANT">
+                                <option value="SEAT BELT EXTENSION">
+                                <option value="SEAT BELT INFANT">
+                                <option value="OXYGEN CYLINDER">
+                                <option value="OXYGEN SPARE MASK">
+                                <option value="SMOKE HOOD (PBE)">
+                                <option value="MEGAPHONE">
+                                <option value="SEAT BELT SPARE">
+                                <option value="FLASHLIGHT">
+                                <option value="PORTABLE FIRE EXTINGUISHER">
+                                <option value="FIREPROOF GLOVES">
+                                <option value="ELT">
+                                <option value="SURVIVAL KIT">
+                                <option value="EMERGENCY MEDICAL KIT">
+                                <option value="CRASH AXE">
+                                <option value="FIRST AID KIT">
+                            </datalist>
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="part-number">Part Number</label>
-                                <input type="text" id="part-number" name="part-number" placeholder="PN-12345">
+                                <div class="input-group">
+                                    <input type="text" id="part-number" name="part-number" placeholder="PN-12345">
+                                    <button type="button" class="btn-secondary btn-na"
+                                        data-target="part-number">N/A</button>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label for="serial-number">Serial Number</label>
-                                <input type="text" id="serial-number" name="serial-number" placeholder="SN-98765">
+                                <div class="input-group">
+                                    <input type="text" id="serial-number" name="serial-number" placeholder="SN-98765">
+                                    <button type="button" class="btn-secondary btn-na"
+                                        data-target="serial-number">N/A</button>
+                                </div>
                             </div>
                         </div>
 
@@ -125,19 +154,12 @@
                             <textarea id="notes" name="notes" rows="3" placeholder="Additional details..."></textarea>
                         </div>
 
-                        <div class="status-toggles">
-                            <label class="toggle-btn">
-                                <input type="checkbox" name="status-na" value="NA">
-                                <span>N/A</span>
-                            </label>
-                            <label class="toggle-btn">
-                                <input type="checkbox" name="status-damaged" value="DAMAGED">
-                                <span>DAMAGED</span>
-                            </label>
-                            <label class="toggle-btn">
-                                <input type="checkbox" name="status-missing" value="MISSING">
-                                <span>MISSING</span>
-                            </label>
+                        <div class="quick-notes">
+                            <label>Quick status:</label>
+                            <div class="note-buttons">
+                                <button type="button" class="tag-btn damaged" data-note="DAMAGED">DAMAGED</button>
+                                <button type="button" class="tag-btn missing" data-note="MISSING">MISSING</button>
+                            </div>
                         </div>
 
                         <div class="form-actions">

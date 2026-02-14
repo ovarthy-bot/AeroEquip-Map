@@ -32,7 +32,8 @@ const DEFAULT_LOCATIONS = [
     { id: 'cpt-ohb', name: 'Overhead Stowage Bin', icon: '📦' },
     { id: 'cpt-dh', name: 'Doghouse', icon: '🏠' },
     { id: 'cpt-cas', name: 'Cabin Attendant Seat', icon: '💺' },
-    { id: 'cpt-fd', name: 'Cockpit (Flight Deck)', icon: '✈️' }
+    { id: 'cpt-fd', name: 'Cockpit (Flight Deck)', icon: '✈️' },
+    { id: 'cpt-ps', name: 'Pax Seat', icon: '💺' }
 ];
 
 // DOM Elements
